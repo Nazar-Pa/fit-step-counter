@@ -143,13 +143,13 @@ app.get("/routes/:id", async(req, res) => {
 app.get("/trips/new-trip", async(req, res) => {
   try {
       const { from, to, date, numbOfPass, route_id } = req.query;
-      const [dateC, time] = date.split(',');
-      const [hours, minutes] = time.split(':');
-      const [month, day, year] = dateC.split('/');
-      const date1 = moment(new Date(+parseInt(year), +parseInt(month)-1, +parseInt(day), +parseInt(hours), +parseInt(minutes), 0)).format('YYYY-MM-DD HH:mm:ss');
+      // const [dateC, time] = date.split(',');
+      // const [hours, minutes] = time.split(':');
+      // const [month, day, year] = dateC.split('/');
+      // const date1 = moment(new Date(+parseInt(year), +parseInt(month)-1, +parseInt(day), +parseInt(hours), +parseInt(minutes), 0)).format('YYYY-MM-DD HH:mm:ss');
       const singleTrip = await pool.query("select * from routes " + 
       "where routes.route_date=$1 and " +
-      "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date1, from, to, numbOfPass, route_id]);
+      "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date, from, to, numbOfPass, route_id]);
       res.send(singleTrip.rows)
   } catch (err) {
       console.log(err.message);
