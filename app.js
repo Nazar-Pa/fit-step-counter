@@ -1,11 +1,195 @@
 const express = require('express');
 const app = express.Router();
 var request = require('request');
+const pool = require("./db");
+const moment = require('moment');
+const cors = require("cors");
+
+app.use(cors());
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.render('getPage');
-
 });
+
+app.post("/todos", async(req, res) => {
+  try {
+      const {description} = req.body;
+      const newTodo = await pool.query(
+          "insert into todo (description) values($1) returning *", 
+          [description]);
+
+      res.json(newTodo.rows[0]);
+  } catch (err) {
+      console.log(err.message)
+  }
+});
+
+// get all todos
+
+app.get("/todos", async(req, res) => {
+  try {
+      const allTodos = await pool.query("select * from todo");
+      res.json(allTodos.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+// get a todo
+
+app.get("/todos/:id", async(req, res) => {
+  try {
+      const { id } = req.params;
+      const todo = await pool.query("select * from todo where todo_id=$1", [id]);
+      res.json(todo.rows)
+  } catch (err) {
+      console.log(err)
+  }
+});
+
+// update a todo
+
+app.put("/todos/:id", async(req, res) => {
+  try {
+      const { id } = req.params;
+      const { description } = req.body;
+      const todo = await pool.query("update todo set description = $1 where todo_id=$2", 
+      [description, id]);
+      res.json("updated!");
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+// delete a todo
+
+app.delete("/todos/:id", async(req, res) => {
+  try {
+      const { id } = req.params;
+      const todo = await pool.query("delete from todo where todo_id=$1", [id]);
+      res.json("deleted");
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+
+// create a route
+
+app.post("/routes", async(req, res) => {
+  try {
+      // const { user_id } = req.query;
+      const { u_id, from, to, date, numbOfPass, price, carModel, note } = req.body;
+      const newTodo = await pool.query(
+          "insert into routes (u_id, from_city, to_city, route_date, numb_of_pass, price, car_model, note) values($1,$2,$3,$4,$5,$6,$7,$8) returning *", 
+          [u_id, from, to, date, numbOfPass, price, carModel, note]);
+
+      res.json(newTodo.rows[0]);
+  } catch (err) {
+      console.log(err.message)
+  }
+});
+
+// get all routes
+
+app.get("/routes", async(req, res) => {
+  try {
+      const allRoutes = await pool.query("select * from routes");
+      res.json(allRoutes.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+
+// filter routes for certain date, departure and arrival cities
+// and number of seats
+
+app.get("/routes/search", async(req, res) => {
+  try {
+      const { from, to, date, numbOfPass } = req.query;
+      const [month, day, year] = date.split('/');
+      const date1 = moment(new Date(+year, +month-1, +day, 0, 0, 0)).format('YYYY-MM-DD HH:mm:ss');
+      const date2 = moment(new Date(+year, +month-1, +day, 23, 59, 0)).format('YYYY-MM-DD HH:mm:ss');
+      const filteredRoutes = await pool.query("select * from routes where route_date between $1 and $2 and " +
+      "from_city=$3 and to_city=$4 and numb_of_pass>=$5", [date1, date2, from, to, numbOfPass]);
+      res.send(filteredRoutes.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+
+// get all trips of one driver
+
+app.get("/routes/:id", async(req, res) => {
+  const { id } = req.params;
+  try {
+      const allRoutes = await pool.query("SELECT " +
+      "distinct to_char(route_date, 'yyyy-mm-dd'), " +
+      "jsonb_agg(to_jsonb (t.*) - '{}'::text[]) AS data " +
+      "FROM routes t where u_id=$1 GROUP BY 1 ORDER BY 1 desc", [id]);
+      const allRoutesCount = await pool.query("select distinct to_char(route_date, 'mon-dd-yy'), * from routes where u_id=$1", [id]);
+      res.json(allRoutes.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+
+// get single trip of the driver
+
+app.get("/trips/new-trip", async(req, res) => {
+  try {
+      const { from, to, date, numbOfPass, route_id } = req.query;
+      const [dateC, time] = date.split(',');
+      const [hours, minutes] = time.split(':');
+      const [month, day, year] = dateC.split('/');
+      const date1 = moment(new Date(+parseInt(year), +parseInt(month)-1, +parseInt(day), +parseInt(hours), +parseInt(minutes), 0)).format('YYYY-MM-DD HH:mm:ss');
+      const singleTrip = await pool.query("select * from routes " + 
+      "where routes.route_date=$1 and " +
+      "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date1, from, to, numbOfPass, route_id]);
+      res.send(singleTrip.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+// const singleTrip = await pool.query("select * from routes inner join users on routes.u_id = users.u_id " + 
+//         "where routes.route_date=$1 and " +
+//         "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date1, from, to, numbOfPass, route_id]);
+
+// driver deletes his trip
+
+app.delete("/routes/:id", async(req, res) => {
+  const { id } = req.params;
+  try {
+      const allRoutes = await pool.query("delete from routes where route_id=$1 ", [id]);
+      res.json(allRoutes.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+
+
+// ?from=from&to=to&date1=date1&date2=date2&numbOfPass=numbOfPass
+
+// create a new user
+
+app.post("/users/user", async(req, res) => {
+  try {
+      const { name, email, phone, u_id } = req.body;
+      const newUser = await pool.query("insert into users (name, email, phone, u_id) values($1,$2,$3,$4) returning *"
+      ,[name, email, phone, u_id]);
+      res.json(newUser.rows)
+  } catch (err) {
+      console.log(err.message);
+  }
+});
+
+module.exports = app;
 
 // var start = new Date();
 //   start.setHours(0,0,0,0);
@@ -142,8 +326,6 @@ app.get('/', (req, res) => {
 
 
 // });
-
-module.exports = app;
 
 //https://api.nutritionix.com/v1_1/search/apple?results=0%3A20&cal_min=0&cal_max=50000&fields=*&appId=45d558a8&appKey=283a05f63e61bb5c305979fdfca57b28
 
