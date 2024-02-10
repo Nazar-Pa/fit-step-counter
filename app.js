@@ -80,16 +80,16 @@ app.delete("/todos/:id", async(req, res) => {
 app.post("/routes", async(req, res) => {
   try {
       // const { user_id } = req.query;
-      const { u_id, from, to, date, numbOfPass, price, carModel, note } = req.body;
+      const { u_id, name, phoneNumber, from, to, date, numbOfPass, price, carModel, note } = req.body;
       const newTodo = await pool.query(
-          "insert into routes (u_id, from_city, to_city, route_date, numb_of_pass, price, car_model, note) values($1,$2,$3,$4,$5,$6,$7,$8) returning *", 
-          [u_id, from, to, date, numbOfPass, price, carModel, note]);
-
+          "insert into routes (u_id, from_city, to_city, route_date, numb_of_pass, price, car_model, name, phone_number, note) " + 
+          "values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning *", 
+          [u_id, from, to, date, numbOfPass, price, carModel, name, phoneNumber, note]);
       res.json(newTodo.rows[0]);
   } catch (err) {
       console.log(err.message)
   }
-});
+})
 
 // get all routes
 
@@ -142,19 +142,18 @@ app.get("/routes/:id", async(req, res) => {
 
 app.get("/trips/new-trip", async(req, res) => {
   try {
-      const { from, to, date, numbOfPass, route_id } = req.query;
+      const { route_id } = req.query;
       // const [dateC, time] = date.split(',');
       // const [hours, minutes] = time.split(':');
       // const [month, day, year] = dateC.split('/');
       // const date1 = moment(new Date(+parseInt(year), +parseInt(month)-1, +parseInt(day), +parseInt(hours), +parseInt(minutes), 0)).format('YYYY-MM-DD HH:mm:ss');
       const singleTrip = await pool.query("select * from routes " + 
-      "where routes.route_date=$1 and " +
-      "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date, from, to, numbOfPass, route_id]);
+      "where routes.route_id=$1", [route_id]);
       res.send(singleTrip.rows)
   } catch (err) {
       console.log(err.message);
   }
-});
+})
 
 // const singleTrip = await pool.query("select * from routes inner join users on routes.u_id = users.u_id " + 
 //         "where routes.route_date=$1 and " +
