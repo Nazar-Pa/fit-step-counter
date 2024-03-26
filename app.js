@@ -1,77 +1,21 @@
 const express = require('express');
 const app = express.Router();
-var request = require('request');
 const pool = require("./db");
 const moment = require('moment');
 const cors = require("cors");
 
 app.use(cors());
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, PUT");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  next();
+})
 app.use(express.json());
 
 app.get('/', (req, res) => {
   res.render('getPage');
-});
-
-app.post("/todos", async(req, res) => {
-  try {
-      const {description} = req.body;
-      const newTodo = await pool.query(
-          "insert into todo (description) values($1) returning *", 
-          [description]);
-
-      res.json(newTodo.rows[0]);
-  } catch (err) {
-      console.log(err.message)
-  }
-});
-
-// get all todos
-
-app.get("/todos", async(req, res) => {
-  try {
-      const allTodos = await pool.query("select * from todo");
-      res.json(allTodos.rows)
-  } catch (err) {
-      console.log(err.message);
-  }
-});
-
-// get a todo
-
-app.get("/todos/:id", async(req, res) => {
-  try {
-      const { id } = req.params;
-      const todo = await pool.query("select * from todo where todo_id=$1", [id]);
-      res.json(todo.rows)
-  } catch (err) {
-      console.log(err)
-  }
-});
-
-// update a todo
-
-app.put("/todos/:id", async(req, res) => {
-  try {
-      const { id } = req.params;
-      const { description } = req.body;
-      const todo = await pool.query("update todo set description = $1 where todo_id=$2", 
-      [description, id]);
-      res.json("updated!");
-  } catch (err) {
-      console.log(err.message);
-  }
-});
-
-// delete a todo
-
-app.delete("/todos/:id", async(req, res) => {
-  try {
-      const { id } = req.params;
-      const todo = await pool.query("delete from todo where todo_id=$1", [id]);
-      res.json("deleted");
-  } catch (err) {
-      console.log(err.message);
-  }
 });
 
 
@@ -143,10 +87,6 @@ app.get("/routes/:id", async(req, res) => {
 app.get("/trips/new-trip", async(req, res) => {
   try {
       const { route_id } = req.query;
-      // const [dateC, time] = date.split(',');
-      // const [hours, minutes] = time.split(':');
-      // const [month, day, year] = dateC.split('/');
-      // const date1 = moment(new Date(+parseInt(year), +parseInt(month)-1, +parseInt(day), +parseInt(hours), +parseInt(minutes), 0)).format('YYYY-MM-DD HH:mm:ss');
       const singleTrip = await pool.query("select * from routes " + 
       "where routes.route_id=$1", [route_id]);
       res.send(singleTrip.rows)
@@ -155,11 +95,6 @@ app.get("/trips/new-trip", async(req, res) => {
   }
 })
 
-// const singleTrip = await pool.query("select * from routes inner join users on routes.u_id = users.u_id " + 
-//         "where routes.route_date=$1 and " +
-//         "routes.from_city=$2 and routes.to_city=$3 and routes.numb_of_pass=$4 and routes.route_id=$5", [date1, from, to, numbOfPass, route_id]);
-
-// driver deletes his trip
 
 app.delete("/routes/:id", async(req, res) => {
   const { id } = req.params;
